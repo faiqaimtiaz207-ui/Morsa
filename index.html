@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Toolkit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <div id="app">
+
+        <!-- Decorative blobs -->
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-inner">
+                    <div class="logo">
+                        <div class="logo-icon">
+                            <span>·</span><span>—</span>
+                        </div>
+                        <div>
+                            <h1>Morse Toolkit</h1>
+                            <p class="subtitle">Learn, Convert, Listen, and Master Morse Code</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav">
+            <div class="container">
+                <div class="tab-list">
+                    <button data-tab="converter" class="tab-btn active" aria-label="Converter Tab">
+                        <span class="tab-icon">⇄</span> Converter
+                    </button>
+                    <button data-tab="audio" class="tab-btn" aria-label="Audio Tab">
+                        <span class="tab-icon">♪</span> Audio
+                    </button>
+                    <button data-tab="trainer" class="tab-btn" aria-label="Trainer Tab">
+                        <span class="tab-icon">◎</span> Trainer
+                    </button>
+                    <button data-tab="reference" class="tab-btn" aria-label="Reference Tab">
+                        <span class="tab-icon">≡</span> Reference
+                    </button>
+                    <button data-tab="about" class="tab-btn" aria-label="About Tab">
+                        <span class="tab-icon">✦</span> About
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main container">
+
+            <!-- TAB 1: CONVERTER -->
+            <div id="converter-tab" class="tab-content active">
+                <div class="card-stack">
+
+                    <!-- Text to Morse -->
+                    <div class="card">
+                        <label for="text-input" class="field-label">Text to Morse</label>
+                        <textarea
+                            id="text-input"
+                            placeholder="Type something here..."
+                            class="field-textarea"
+                            aria-label="Text input for conversion"
+                        ></textarea>
+                        <div class="btn-row">
+                            <button id="copy-text-morse" class="btn btn-primary" aria-label="Copy Morse code">Copy Morse</button>
+                            <button id="clear-text-input" class="btn btn-ghost" aria-label="Clear text input">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="card card-output">
+                        <label for="morse-output" class="field-label">Morse Code Output</label>
+                        <textarea
+                            id="morse-output"
+                            placeholder="Morse code will appear here..."
+                            class="field-textarea mono"
+                            readonly
+                            aria-label="Morse code output"
+                        ></textarea>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- Morse to Text -->
+                    <div class="card">
+                        <label for="morse-input" class="field-label">Morse to Text</label>
+                        <textarea
+                            id="morse-input"
+                            placeholder="Enter Morse (use . and - with spaces)..."
+                            class="field-textarea mono"
+                            aria-label="Morse input for conversion"
+                        ></textarea>
+                        <div class="btn-row">
+                            <button id="copy-morse-text" class="btn btn-primary" aria-label="Copy text">Copy Text</button>
+                            <button id="clear-morse-input" class="btn btn-ghost" aria-label="Clear Morse input">Clear</button>
+                        </div>
+                    </div>
+
+                    <div class="card card-output">
+                        <label for="text-output" class="field-label">Text Output</label>
+                        <textarea
+                            id="text-output"
+                            placeholder="Decoded text will appear here..."
+                            class="field-textarea"
+                            readonly
+                            aria-label="Decoded text output"
+                        ></textarea>
+                    </div>
+
+                </div>
+
+                <!-- Toast notification -->
+                <div id="toast" class="toast">Copied!</div>
+            </div>
+
+            <!-- TAB 2: AUDIO -->
+            <div id="audio-tab" class="tab-content hidden">
+                <div class="card-stack">
+
+                    <div class="card">
+                        <label for="audio-input" class="field-label">Enter Text to Convert to Audio</label>
+                        <textarea
+                            id="audio-input"
+                            placeholder="Type here to generate Morse audio..."
+                            class="field-textarea"
+                            aria-label="Text input for audio generation"
+                        ></textarea>
+                    </div>
+
+                    <div class="card audio-controls-card">
+                        <div class="audio-btns">
+                            <button id="play-audio-btn" class="btn btn-primary btn-lg" aria-label="Play Morse audio">
+                                <span id="play-icon">▶</span> Play
+                            </button>
+                            <button id="stop-audio-btn" class="btn btn-ghost btn-lg" aria-label="Stop audio playback" disabled>
+                                Stop
+                            </button>
+                        </div>
+
+                        <!-- Playback Progress -->
+                        <div class="progress-wrap">
+                            <span id="current-time" class="time-label">0:00</span>
+                            <div class="progress-track">
+                                <div id="progress-bar" class="progress-fill"></div>
+                            </div>
+                            <span id="total-time" class="time-label">0:00</span>
+                        </div>
+
+                        <!-- Visual Pulse -->
+                        <div class="pulse-container">
+                            <div id="pulse-animation" class="pulse-ring"></div>
+                        </div>
+                    </div>
+
+                    <!-- Morse Display -->
+                    <div class="card morse-display-card">
+                        <p class="field-label">Morse Code</p>
+                        <p id="audio-morse-display" class="morse-display-text">—</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 3: TRAINER -->
+            <div id="trainer-tab" class="tab-content hidden">
+
+                <div id="trainer-start" class="trainer-center">
+                    <div class="card trainer-welcome">
+                        <div class="trainer-icon">◎</div>
+                        <h2>Morse Code Trainer</h2>
+                        <p class="muted">Can you beat your best score?</p>
+                        <div class="score-pill">
+                            <span class="score-label">Best Score</span>
+                            <span class="score-value" id="best-score-display">0</span>
+                            <span class="score-unit">WPM</span>
+                        </div>
+                        <button id="start-trainer" class="btn btn-primary btn-lg btn-full" aria-label="Start trainer game">
+                            Start Game
+                        </button>
+                    </div>
+                </div>
+
+                <div id="trainer-playing" class="hidden">
+                    <div class="card-stack">
+                        <!-- Score Display -->
+                        <div class="card stats-card">
+                            <div class="stat-item">
+                                <span class="stat-label">Score</span>
+                                <span class="stat-value" id="current-score">0</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item">
+                                <span class="stat-label">Time</span>
+                                <span class="stat-value" id="round-timer">3</span>
+                            </div>
+                            <div class="stat-divider"></div>
+                            <div class="stat-item">
+                                <span class="stat-label">Accuracy</span>
+                                <span class="stat-value" id="accuracy">100%</span>
+                            </div>
+                        </div>
+
+                        <div class="card listen-card">
+                            <button id="play-trainer-audio" class="btn btn-primary btn-lg" aria-label="Play Morse audio">
+                                ▶ Listen
+                            </button>
+                        </div>
+
+                        <div class="card">
+                            <label for="trainer-answer" class="field-label">Type the letter you hear:</label>
+                            <input
+                                id="trainer-answer"
+                                type="text"
+                                maxlength="1"
+                                placeholder="?"
+                                class="trainer-input"
+                                aria-label="Answer input"
+                            />
+                            <p class="hint-text">Current letter being played</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="trainer-gameover" class="hidden trainer-center">
+                    <div class="card-stack">
+                        <div class="card result-card">
+                            <h2>Game Over</h2>
+                            <div class="result-grid">
+                                <div class="result-item">
+                                    <span class="result-label">Final Score</span>
+                                    <span class="result-value accent" id="final-score">0</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-label">Accuracy</span>
+                                    <span class="result-value" id="final-accuracy">0%</span>
+                                </div>
+                                <div class="result-item">
+                                    <span class="result-label">Estimated WPM</span>
+                                    <span class="result-value accent" id="final-wpm">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <p id="share-text" class="share-text">I scored 0 WPM on Morse Toolkit.</p>
+                            <button id="copy-share" class="btn btn-primary btn-full" aria-label="Copy share text">Copy Result</button>
+                        </div>
+
+                        <button id="play-again" class="btn btn-ghost btn-full" aria-label="Play another round">Play Again</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 4: REFERENCE -->
+            <div id="reference-tab" class="tab-content hidden">
+
+                <!-- Learning Tips -->
+                <div class="card-stack">
+                    <div class="card">
+                        <h2 class="section-heading">Quick Learning Tips</h2>
+                        <div class="tips-list">
+                            <div class="tip-item">
+                                <span class="tip-code">.</span>
+                                <span class="tip-text">= E (most common letter)</span>
+                            </div>
+                            <div class="tip-item">
+                                <span class="tip-code">—</span>
+                                <span class="tip-text">= T (most common dash)</span>
+                            </div>
+                            <div class="tip-item">
+                                <span class="tip-code">··· ——— ···</span>
+                                <span class="tip-text">= SOS (distress signal)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Letters Reference -->
+                    <div class="card">
+                        <h2 class="section-heading">Letters (A–Z)</h2>
+                        <div id="letters-grid" class="ref-grid"></div>
+                    </div>
+
+                    <!-- Numbers Reference -->
+                    <div class="card">
+                        <h2 class="section-heading">Numbers (0–9)</h2>
+                        <div id="numbers-grid" class="ref-grid"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 5: ABOUT -->
+            <div id="about-tab" class="tab-content hidden">
+                <div class="card-stack">
+                    <div class="card about-hero-card">
+                        <div class="about-hero-icon">·−·−</div>
+                        <h2 class="about-hero-title">What on Earth is Morse Code?</h2>
+                        <p class="about-hero-sub">A crash course for the curious, the bored, and the mildly paranoid.</p>
+                    </div>
+
+                    <div class="about-faq-list">
+                        <div class="about-faq-item" data-open="false">
+                            <button type="button" class="about-faq-q" aria-expanded="false">
+                                <span>🤔 Who invented it — and why?</span>
+                                <span class="about-faq-arrow">›</span>
+                            </button>
+                            <div class="about-faq-a">
+                                <p>A painter named <strong>Samuel Morse</strong> came up with it in the 1830s. Yes, a <em>painter</em>. He was sailing home from Europe when he heard someone mention electromagnetic telegraphs — and thought, "I could do that." Iconic energy.</p>
+                                <p>His assistant <strong>Alfred Vail</strong> did a lot of the heavy engineering lifting, but history remembered Morse's name. Classic.</p>
+                                <div class="about-fun-fact">
+                                    <span class="about-fun-label">Fun fact</span>
+                                    <p>Morse originally imagined the receiver printing out a squiggly line on paper tape — not dots and dashes at all. Operators quickly realised they could just <em>listen</em> to the clicks instead. Oops, genius.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="about-faq-item" data-open="false">
+                            <button type="button" class="about-faq-q" aria-expanded="false">
+                                <span>📡 How does it actually work?</span>
+                                <span class="about-faq-arrow">›</span>
+                            </button>
+                            <div class="about-faq-a">
+                                <p>Every letter and number is turned into a unique pattern of <strong>dots</strong> (short beeps) and <strong>dashes</strong> (long beeps). That's it. That's the whole system.</p>
+                                <div class="about-morse-demo">
+                                    <div class="morse-demo-row">
+                                        <span class="morse-demo-letter">S</span>
+                                        <span class="morse-demo-code">· · ·</span>
+                                        <span class="morse-demo-hint">three short beeps</span>
+                                    </div>
+                                    <div class="morse-demo-row">
+                                        <span class="morse-demo-letter">O</span>
+                                        <span class="morse-demo-code">— — —</span>
+                                        <span class="morse-demo-hint">three long beeps</span>
+                                    </div>
+                                    <div class="morse-demo-row">
+                                        <span class="morse-demo-letter">SOS</span>
+                                        <span class="morse-demo-code">· · · — — — · · ·</span>
+                                        <span class="morse-demo-hint">the world's most famous signal</span>
+                                    </div>
+                                </div>
+                                <p>You can send Morse via sound, light, taps, blinks — basically anything that can be "on" or "off." Even blinking your eyes. (People have actually done this. More on that below.)</p>
+                            </div>
+                        </div>
+
+                        <div class="about-faq-item" data-open="false">
+                            <button type="button" class="about-faq-q" aria-expanded="false">
+                                <span>🚢 Why does SOS mean "save our souls"?</span>
+                                <span class="about-faq-arrow">›</span>
+                            </button>
+                            <div class="about-faq-a">
+                                <p>Here's the twist — <strong>it doesn't</strong>. SOS doesn't stand for anything. It was chosen in 1905 purely because <code>· · · — — — · · ·</code> is dead simple to send and impossible to misread in a panic. "Save Our Souls" came later as a backronym because humans love a good story.</p>
+                                <div class="about-fun-fact">
+                                    <span class="about-fun-label">Plot twist</span>
+                                    <p>The Titanic initially sent CQD — the old distress signal meaning "All stations: Distress." A junior operator suggested switching to the new SOS. The Titanic became one of the first ships to use it. It did not help as much as hoped.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="about-faq-item" data-open="false">
+                            <button type="button" class="about-faq-q" aria-expanded="false">
+                                <span>🪖 Real moments where Morse Code saved lives?</span>
+                                <span class="about-faq-arrow">›</span>
+                            </button>
+                            <div class="about-faq-a">
+                                <p>Glad you asked. Here are three genuinely wild ones:</p>
+                                <div class="about-timeline">
+                                    <div class="about-timeline-item">
+                                        <div class="about-timeline-dot"></div>
+                                        <div>
+                                            <strong>1966 — Jeremiah Denton, POW</strong>
+                                            <p>An American pilot held captive in Vietnam was forced to appear in a propaganda video. While speaking, he blinked the word <strong>T·O·R·T·U·R·E</strong> in Morse code. The US Navy decoded it. The world found out.</p>
+                                        </div>
+                                    </div>
+                                    <div class="about-timeline-item">
+                                        <div class="about-timeline-dot"></div>
+                                        <div>
+                                            <strong>1912 — RMS Titanic</strong>
+                                            <p>Titanic's distress signals brought the RMS Carpathia to the rescue. Without Morse, the 705 survivors might not have made it either.</p>
+                                        </div>
+                                    </div>
+                                    <div class="about-timeline-item">
+                                        <div class="about-timeline-dot"></div>
+                                        <div>
+                                            <strong>1995 — The movie "Ace Ventura"</strong>
+                                            <p>Okay not life-saving. But Jim Carrey's wacky Morse scene introduced a generation of kids to the concept. We're counting it.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="about-faq-item" data-open="false">
+                            <button type="button" class="about-faq-q" aria-expanded="false">
+                                <span>📱 Is Morse Code still used today?</span>
+                                <span class="about-faq-arrow">›</span>
+                            </button>
+                            <div class="about-faq-a">
+                                <p>More than you'd think! It was officially retired from maritime use in 1999, but it lives on in:</p>
+                                <div class="about-uses-grid">
+                                    <div class="about-use-item">
+                                        <span class="about-use-icon">📻</span>
+                                        <strong>Ham Radio</strong>
+                                        <span>Hobbyists still use it worldwide — it punches through interference that voice can't</span>
+                                    </div>
+                                    <div class="about-use-item">
+                                        <span class="about-use-icon">✈️</span>
+                                        <strong>Aviation</strong>
+                                        <span>Airport beacons still broadcast their ID codes in Morse</span>
+                                    </div>
+                                    <div class="about-use-item">
+                                        <span class="about-use-icon">♿</span>
+                                        <strong>Accessibility</strong>
+                                        <span>People with limited mobility use Morse to communicate via eye blinks or muscle twitches</span>
+                                    </div>
+                                    <div class="about-use-item">
+                                        <span class="about-use-icon">🎮</span>
+                                        <strong>Escape Rooms</strong>
+                                        <span>Game designers love it. You will solve at least one Morse puzzle before you die</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="about-faq-item" data-open="false">
+                            <button type="button" class="about-faq-q" aria-expanded="false">
+                                <span>⚡ How fast can humans actually send Morse?</span>
+                                <span class="about-faq-arrow">›</span>
+                            </button>
+                            <div class="about-faq-a">
+                                <p>Beginners manage about <strong>5 words per minute</strong> — roughly the speed of someone typing with oven mitts on.</p>
+                                <p>Trained operators hit <strong>20–30 WPM</strong> comfortably. Military experts pushed past <strong>40 WPM</strong>. The world record? A jaw-dropping <strong>75.2 WPM</strong> set by Ted McElroy in 1939, a record that stood for decades.</p>
+                                <div class="about-fun-fact">
+                                    <span class="about-fun-label">Nerd corner</span>
+                                    <p>At peak WPM, experienced operators stop consciously decoding individual letters — they hear whole words as single musical shapes, like how you recognise a song from the first two notes. The brain is wild.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="about-faq-item" data-open="false">
+                            <button type="button" class="about-faq-q" aria-expanded="false">
+                                <span>🧠 What's the easiest way to learn it?</span>
+                                <span class="about-faq-arrow">›</span>
+                            </button>
+                            <div class="about-faq-a">
+                                <p>The old method was memorising a chart. The modern method is way more fun:</p>
+                                <div class="about-tips-list">
+                                    <div class="about-tip">
+                                        <div class="about-tip-num">1</div>
+                                        <div>
+                                            <strong>Learn by sound, not by sight.</strong>
+                                            <div>Each code has a rhythm. "Di-dah" = A. "Dah-di-di-dit" = B. Hear the music, not the dots.</div>
+                                        </div>
+                                    </div>
+                                    <div class="about-tip">
+                                        <div class="about-tip-num">2</div>
+                                        <div>
+                                            <strong>Start with E, T, I, A, N, M.</strong>
+                                            <div>These are the shortest codes. Get these six in your bones first.</div>
+                                        </div>
+                                    </div>
+                                    <div class="about-tip">
+                                        <div class="about-tip-num">3</div>
+                                        <div>
+                                            <strong>Use the Trainer tab above.</strong>
+                                            <div>Even 5 minutes a day builds the pattern recognition surprisingly fast.</div>
+                                        </div>
+                                    </div>
+                                    <div class="about-tip">
+                                        <div class="about-tip-num">4</div>
+                                        <div>
+                                            <strong>Don't try to be fast early.</strong>
+                                            <div>Accuracy first, speed later. Every expert started by going embarrassingly slow.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card about-footer-card">
+                        <p class="about-footer-text">Now you know more about Morse code than 99% of people alive. Use this power responsibly — or at least use it to win pub quizzes.</p>
+                        <button id="about-trainer-link" class="btn btn-primary btn-full" aria-label="Go to Trainer tab">Try the Trainer →</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>Morse Toolkit · Built for learning and practice</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
