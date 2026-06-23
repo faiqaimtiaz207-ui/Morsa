@@ -489,18 +489,12 @@ stopAudioBtn.addEventListener('click', stopAudio);
 const startTrainerBtn = document.getElementById('start-trainer');
 const trainerStart = document.getElementById('trainer-start');
 const trainerPlaying = document.getElementById('trainer-playing');
-const trainerGameover = document.getElementById('trainer-gameover');
 const trainerAnswer = document.getElementById('trainer-answer');
 const currentScoreDisplay = document.getElementById('current-score');
 const roundTimerDisplay = document.getElementById('round-timer');
 const accuracyDisplay = document.getElementById('accuracy');
-const finalScoreDisplay = document.getElementById('final-score');
-const finalAccuracyDisplay = document.getElementById('final-accuracy');
-const finalWpmDisplay = document.getElementById('final-wpm');
-const playAgainBtn = document.getElementById('play-again');
-const copyShareBtn = document.getElementById('copy-share');
 const bestScoreDisplay = document.getElementById('best-score-display');
-const shareText = document.getElementById('share-text');
+const playAgainBtn = document.getElementById('play-again');
 
 let trainerState = {
     score: 0,
@@ -533,7 +527,9 @@ startTrainerBtn.addEventListener('click', () => {
 
     trainerStart.classList.add('hidden');
     trainerPlaying.classList.remove('hidden');
-    trainerGameover.classList.add('hidden');
+    // ensure Play Again button hidden while playing
+    const playAgainBtnEl = document.getElementById('play-again');
+    if (playAgainBtnEl) playAgainBtnEl.style.display = 'none';
     trainerAnswer.value = '';
     trainerAnswer.focus();
 
@@ -546,6 +542,13 @@ function nextRound() {
     trainerState.canAnswer = false;
     trainerAnswer.value = '';
     trainerAnswer.focus();
+
+    // Clear previous feedback
+    const feedbackEl = document.getElementById('trainer-feedback');
+    if (feedbackEl) {
+        feedbackEl.textContent = '';
+        feedbackEl.classList.remove('success', 'error');
+    }
 
     updateTrainerDisplay();
     playTrainerMorse();
@@ -595,6 +598,20 @@ function endRound(isCorrect) {
     clearInterval(trainerState.timerInterval);
     trainerState.canAnswer = false;
 
+    // Show feedback message
+    const feedbackEl = document.getElementById('trainer-feedback');
+    if (feedbackEl) {
+        if (isCorrect) {
+            feedbackEl.textContent = 'Correct!';
+            feedbackEl.classList.remove('error');
+            feedbackEl.classList.add('success');
+        } else {
+            feedbackEl.textContent = `Wrong — it was ${trainerState.currentLetter}`;
+            feedbackEl.classList.remove('success');
+            feedbackEl.classList.add('error');
+        }
+    }
+
     trainerState.total++;
     if (isCorrect) {
         trainerState.correct++;
@@ -626,18 +643,22 @@ function endGame() {
         localStorage.setItem('bestScore', wpm);
     }
 
-    // Update UI immediately
-    finalScoreDisplay.textContent = trainerState.score;
-    finalAccuracyDisplay.textContent = accuracy + '%';
-    finalWpmDisplay.textContent = wpm;
-    shareText.textContent = `I scored ${wpm} WPM on Morse Toolkit.`;
-
     // Reflect best score in the UI
     const newBest = localStorage.getItem('bestScore') || prevBest.toString();
     bestScoreDisplay.textContent = newBest;
 
+    const trainerSubtitle = document.getElementById('trainer-subtitle');
+    if (trainerSubtitle) {
+        trainerSubtitle.textContent = `Can you beat your best score (${newBest} WPM)?`;
+    }
+
+    // Return to the start view and show Play Again button
     trainerPlaying.classList.add('hidden');
-    trainerGameover.classList.remove('hidden');
+    trainerStart.classList.remove('hidden');
+    const playAgainBtnEl = document.getElementById('play-again');
+    if (playAgainBtnEl) {
+        playAgainBtnEl.style.display = 'block';
+    }
 }
 
 function updateTrainerDisplay() {
@@ -653,31 +674,13 @@ playAgainBtn.addEventListener('click', () => {
     startTrainerBtn.click();
 });
 
-copyShareBtn.addEventListener('click', async () => {
-    const text = shareText?.textContent || '';
-    try {
-        await navigator.clipboard.writeText(text);
-        flashButtonCopy(copyShareBtn);
-        showToast();
-    } catch (err) {
-        // Fallback: use a temporary textarea + execCommand
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        try {
-            document.execCommand('copy');
-            flashButtonCopy(copyShareBtn);
-            showToast();
-        } finally {
-            document.body.removeChild(ta);
-        }
-    }
-});
-
 window.addEventListener('DOMContentLoaded', () => {
     const bestScore = localStorage.getItem('bestScore') || '0';
     bestScoreDisplay.textContent = bestScore;
+    const trainerSubtitle = document.getElementById('trainer-subtitle');
+    if (trainerSubtitle) {
+        trainerSubtitle.textContent = `Can you beat your best score (${bestScore} WPM)?`;
+    }
 });
 
 // ===== REFERENCE TAB =====

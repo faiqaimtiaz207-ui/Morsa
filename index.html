@@ -178,10 +178,10 @@
             <div id="trainer-tab" class="tab-content hidden">
 
                 <div id="trainer-start" class="trainer-center">
-                    <div class="card trainer-welcome">
+                        <div class="card trainer-welcome">
                         <div class="trainer-icon">◎</div>
                         <h2>Morse Code Trainer</h2>
-                        <p class="muted">Can you beat your best score?</p>
+                        <p id="trainer-subtitle" class="muted">Can you beat your best score?</p>
                         <div class="score-pill">
                             <span class="score-label">Best Score</span>
                             <span class="score-value" id="best-score-display">0</span>
@@ -190,6 +190,7 @@
                         <button id="start-trainer" class="btn btn-primary btn-lg btn-full" aria-label="Start trainer game">
                             Start Game
                         </button>
+                        <button id="play-again" class="btn btn-ghost btn-full" aria-label="Play another round" style="display:none; margin-top:8px;">Play Again</button>
                     </div>
                 </div>
 
@@ -224,38 +225,12 @@
                                 aria-label="Answer input"
                             />
                             <p class="hint-text">Current letter being played</p>
+                            <p id="trainer-feedback" class="trainer-feedback" aria-live="polite"></p>
                         </div>
                     </div>
                 </div>
 
-                <div id="trainer-gameover" class="hidden trainer-center">
-                    <div class="card-stack">
-                        <div class="card result-card">
-                            <h2>Game Over</h2>
-                            <div class="result-grid">
-                                <div class="result-item">
-                                    <span class="result-label">Final Score</span>
-                                    <span class="result-value accent" id="final-score">0</span>
-                                </div>
-                                <div class="result-item">
-                                    <span class="result-label">Accuracy</span>
-                                    <span class="result-value" id="final-accuracy">0%</span>
-                                </div>
-                                <div class="result-item">
-                                    <span class="result-label">Estimated WPM</span>
-                                    <span class="result-value accent" id="final-wpm">0</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <p id="share-text" class="share-text">I scored 0 WPM on Morse Toolkit.</p>
-                            <button id="copy-share" class="btn btn-primary btn-full" aria-label="Copy share text">Copy Result</button>
-                        </div>
-
-                        <button id="play-again" class="btn btn-ghost btn-full" aria-label="Play another round">Play Again</button>
-                    </div>
-                </div>
+                <!-- gameover removed; keep Play Again button available in the start view -->
 
             </div>
 

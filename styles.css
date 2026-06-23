@@ -518,6 +518,26 @@ button:active::after {
     gap: 2px;
 }
 
+/* Trainer feedback message */
+.trainer-feedback {
+    margin-top: 8px;
+    font-size: 16px;
+    text-align: center;
+    min-height: 20px;
+    color: var(--text);
+    font-weight: 600;
+}
+.trainer-feedback.success {
+    color: #1a8a3c;
+}
+.trainer-feedback.error {
+    color: #d04444;
+}
+
+@media (max-width: 600px) {
+    .trainer-feedback { font-size: 15px; padding: 0 6px; }
+}
+
 .score-label {
     font-size: 11px;
     font-weight: 600;
