@@ -37,8 +37,9 @@
     0x8833ff, // deep brand purple
   ];
 
-  // ---- PARTICLES ----
-  const PARTICLE_COUNT = 110;
+    // ---- PARTICLES ----
+    // Increased particle count for a denser background bubble effect
+    const PARTICLE_COUNT = 500;
   const particles = [];
 
   // Shared geometry (a small circle sprite)
@@ -48,33 +49,32 @@
 
   function makeParticle() {
     const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-    const mat = new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: randBetween(0.4, 0.7),
-    });
-    const mesh = new THREE.Mesh(circleGeo, mat);
+        const mat = new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: randBetween(0.25, 0.8),
+        });
+        const mesh = new THREE.Mesh(circleGeo, mat);
 
-    // Spread across a wide plane — we go wider than viewport so sides are filled
-    const spread = { x: 55, y: 35 };
+        // Spread across a wider plane so more bubbles fill the backdrop
+        const spread = { x: 70, y: 45 };
     mesh.position.set(
       randBetween(-spread.x, spread.x),
       randBetween(-spread.y, spread.y),
       randBetween(-10, 5)
     );
+        const size = randBetween(0.18, 1.6);
+        mesh.scale.setScalar(size);
 
-    const size = randBetween(0.25, 1.4);
-    mesh.scale.setScalar(size);
-
-    // Slow drift velocity
-    const speed = randBetween(0.008, 0.035);
+        // Slow drift velocity (slightly wider range for variety)
+        const speed = randBetween(0.006, 0.04);
     const angle = Math.random() * Math.PI * 2;
     const vx = Math.cos(angle) * speed;
     const vy = Math.sin(angle) * speed;
 
     // Slow float bob
     const bobFreq = randBetween(0.3, 1.0);
-    const bobAmp  = randBetween(0.02, 0.08);
+    const bobAmp  = randBetween(0.02, 0.1);
     const bobOff  = Math.random() * Math.PI * 2;
 
     // Cursor repulsion state
@@ -90,7 +90,7 @@
 
   // ---- CURSOR REPULSION ----
   const REPULSE_RADIUS = 7;
-  const REPULSE_FORCE = 0.04;
+  const REPULSE_FORCE = 0.09;
   const FRICTION = 0.91;
   const pointer = new THREE.Vector3(9999, 9999, 0);
 
@@ -104,9 +104,8 @@
 
   window.addEventListener('mousemove', e => updatePointer(e.clientX, e.clientY));
   window.addEventListener('touchmove', e => {
-    e.preventDefault();
     updatePointer(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: false });
+  }, { passive: true });
   window.addEventListener('touchend', () => {
     pointer.set(9999, 9999, 0);
   });
@@ -180,10 +179,12 @@ const REVERSE_MORSE_MAP = Object.fromEntries(
 
 // Audio Context and Timing
 const MORSE_TIMING = {
-    dot: 200,
-    dash: 500,
-    letterGap: 300,
-    wordGap: 700
+    unit: 250,
+    dot: 250,
+    dash: 750,
+    symbolGap: 250,
+    letterGap: 750,
+    wordGap: 1750
 };
 
 const FREQUENCY = 800; // Hz
@@ -342,6 +343,52 @@ function formatTime(ms) {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function calculateMorseDuration(pattern) {
+    let total = 0;
+    for (let i = 0; i < pattern.length; i++) {
+        const char = pattern[i];
+
+        if (char === '.') total += MORSE_TIMING.dot;
+        else if (char === '-') total += MORSE_TIMING.dash;
+        else if (char === '/') total += MORSE_TIMING.wordGap;
+        else if (char === ' ') {
+            if (pattern[i - 1] === '/' || pattern[i + 1] === '/') {
+                continue;
+            }
+            total += MORSE_TIMING.letterGap;
+        }
+
+        if ((char === '.' || char === '-') && (pattern[i + 1] === '.' || pattern[i + 1] === '-')) {
+            total += MORSE_TIMING.symbolGap;
+        }
+    }
+    return total;
+}
+
+async function playTone(duration) {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.frequency.value = FREQUENCY;
+    gain.gain.setValueAtTime(VOLUME, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration / 1000);
+
+    currentOscillator = osc;
+    currentGainNode = gain;
+
+    return wait(duration);
+}
+
 // Play Morse audio
 async function playMorseAudio(text, showProgress = true) {
     const ctx = getAudioContext();
@@ -349,19 +396,7 @@ async function playMorseAudio(text, showProgress = true) {
     audioMorseDisplay.textContent = morse;
 
     const pattern = morse.split('');
-    let totalDuration = 0;
-
-    for (let i = 0; i < pattern.length; i++) {
-        if (pattern[i] === '.') totalDuration += MORSE_TIMING.dot;
-        else if (pattern[i] === '-') totalDuration += MORSE_TIMING.dash;
-        else if (pattern[i] === ' ') {
-            if (pattern[i - 1] === '/' || pattern[i + 1] === '/') {
-                totalDuration += MORSE_TIMING.wordGap;
-            } else {
-                totalDuration += MORSE_TIMING.letterGap;
-            }
-        }
-    }
+    const totalDuration = calculateMorseDuration(pattern);
 
     if (showProgress) {
         totalTimeDisplay.textContent = formatTime(totalDuration);
@@ -377,57 +412,34 @@ async function playMorseAudio(text, showProgress = true) {
     const pulseEl = document.getElementById('pulse-animation');
     if (showProgress) pulseEl.classList.add('active');
 
-    let time = 0;
-    for (let i = 0; i < pattern.length; i++) {
+    let elapsed = 0;
+    for (let i = 0; i < pattern.length && isPlaying; i++) {
         const char = pattern[i];
-        let duration = 0;
 
-        if (char === '.') {
-            duration = MORSE_TIMING.dot;
-        } else if (char === '-') {
-            duration = MORSE_TIMING.dash;
-        } else if (char === ' ') {
-            duration = MORSE_TIMING.letterGap;
+        if (char === '.' || char === '-') {
+            const duration = char === '.' ? MORSE_TIMING.dot : MORSE_TIMING.dash;
+            await playTone(duration);
+            elapsed += duration;
+
+            if (showProgress) updateProgressBar(elapsed, totalDuration);
+
+            if (pattern[i + 1] === '.' || pattern[i + 1] === '-') {
+                await wait(MORSE_TIMING.symbolGap);
+                elapsed += MORSE_TIMING.symbolGap;
+                if (showProgress) updateProgressBar(elapsed, totalDuration);
+            }
         } else if (char === '/') {
-            duration = MORSE_TIMING.wordGap;
-            time += duration;
-            continue;
-        } else {
-            continue;
+            await wait(MORSE_TIMING.wordGap);
+            elapsed += MORSE_TIMING.wordGap;
+            if (showProgress) updateProgressBar(elapsed, totalDuration);
+        } else if (char === ' ') {
+            if (pattern[i - 1] === '/' || pattern[i + 1] === '/') {
+                continue;
+            }
+            await wait(MORSE_TIMING.letterGap);
+            elapsed += MORSE_TIMING.letterGap;
+            if (showProgress) updateProgressBar(elapsed, totalDuration);
         }
-
-        time += duration;
-        if (time > totalDuration) break;
-
-        await new Promise((resolve) => {
-            const scheduleTime = playbackStartTime + time / 1000;
-            const beepDuration = duration / 1000;
-
-            setTimeout(() => {
-                if (!isPlaying) {
-                    resolve();
-                    return;
-                }
-
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.frequency.value = FREQUENCY;
-                gain.gain.setValueAtTime(VOLUME, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + beepDuration);
-
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + beepDuration);
-
-                if (showProgress) {
-                    updateProgressBar(time, totalDuration);
-                }
-
-                setTimeout(resolve, duration);
-            }, (scheduleTime - ctx.currentTime) * 1000 - 50);
-        });
     }
 
     isPlaying = false;
@@ -479,7 +491,6 @@ const trainerStart = document.getElementById('trainer-start');
 const trainerPlaying = document.getElementById('trainer-playing');
 const trainerGameover = document.getElementById('trainer-gameover');
 const trainerAnswer = document.getElementById('trainer-answer');
-const playTrainerAudioBtn = document.getElementById('play-trainer-audio');
 const currentScoreDisplay = document.getElementById('current-score');
 const roundTimerDisplay = document.getElementById('round-timer');
 const accuracyDisplay = document.getElementById('accuracy');
@@ -543,35 +554,18 @@ function nextRound() {
 async function playTrainerMorse() {
     const morse = MORSE_MAP[trainerState.currentLetter];
     const pattern = morse.split('');
-    let time = 0;
 
-    for (let char of pattern) {
-        let duration = char === '.' ? MORSE_TIMING.dot : MORSE_TIMING.dash;
-        time += duration;
+    for (let i = 0; i < pattern.length && trainerState.gameActive; i++) {
+        const char = pattern[i];
 
-        await new Promise((resolve) => {
-            setTimeout(() => {
-                if (!trainerState.gameActive) {
-                    resolve();
-                    return;
-                }
+        if (char === '.' || char === '-') {
+            const duration = char === '.' ? MORSE_TIMING.dot : MORSE_TIMING.dash;
+            await playTone(duration);
 
-                const ctx = getAudioContext();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.frequency.value = FREQUENCY;
-                gain.gain.setValueAtTime(VOLUME, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration / 1000);
-
-                osc.start(ctx.currentTime);
-                osc.stop(ctx.currentTime + duration / 1000);
-
-                setTimeout(resolve, duration);
-            }, MORSE_TIMING.letterGap);
-        });
+            if (pattern[i + 1] === '.' || pattern[i + 1] === '-') {
+                await wait(MORSE_TIMING.symbolGap);
+            }
+        }
     }
 
     trainerState.canAnswer = true;
@@ -627,15 +621,20 @@ function endGame() {
         : 0;
     const wpm = Math.round((trainerState.score / 5) * 60);
 
-    const bestScore = parseInt(localStorage.getItem('bestScore') || '0');
-    if (wpm > bestScore) {
+    const prevBest = parseInt(localStorage.getItem('bestScore') || '0');
+    if (wpm > prevBest) {
         localStorage.setItem('bestScore', wpm);
     }
 
+    // Update UI immediately
     finalScoreDisplay.textContent = trainerState.score;
     finalAccuracyDisplay.textContent = accuracy + '%';
     finalWpmDisplay.textContent = wpm;
     shareText.textContent = `I scored ${wpm} WPM on Morse Toolkit.`;
+
+    // Reflect best score in the UI
+    const newBest = localStorage.getItem('bestScore') || prevBest.toString();
+    bestScoreDisplay.textContent = newBest;
 
     trainerPlaying.classList.add('hidden');
     trainerGameover.classList.remove('hidden');
@@ -654,16 +653,26 @@ playAgainBtn.addEventListener('click', () => {
     startTrainerBtn.click();
 });
 
-playTrainerAudioBtn.addEventListener('click', async () => {
-    playTrainerAudioBtn.disabled = true;
-    await playTrainerMorse();
-    playTrainerAudioBtn.disabled = false;
-});
-
-copyShareBtn.addEventListener('click', () => {
-    navigator.clipboard.writeText(shareText.textContent);
-    flashButtonCopy(copyShareBtn);
-    showToast();
+copyShareBtn.addEventListener('click', async () => {
+    const text = shareText?.textContent || '';
+    try {
+        await navigator.clipboard.writeText(text);
+        flashButtonCopy(copyShareBtn);
+        showToast();
+    } catch (err) {
+        // Fallback: use a temporary textarea + execCommand
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            flashButtonCopy(copyShareBtn);
+            showToast();
+        } finally {
+            document.body.removeChild(ta);
+        }
+    }
 });
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -773,7 +782,20 @@ document.querySelectorAll('.about-faq-q').forEach(btn => {
     });
 });
 
+function scrollToTopOfTrainerTab() {
+    const trainerTab = document.getElementById('trainer-tab');
+    if (!trainerTab) return;
+
+    const headerHeight = document.querySelector('.header')?.offsetHeight || 0;
+    const navHeight = document.querySelector('.nav')?.offsetHeight || 0;
+    const offset = headerHeight + navHeight + 12;
+    const targetTop = trainerTab.getBoundingClientRect().top + window.pageYOffset - offset;
+
+    window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+}
+
 document.getElementById('about-trainer-link')?.addEventListener('click', () => {
     const trainerTabBtn = document.querySelector('.tab-btn[data-tab="trainer"]');
     trainerTabBtn?.click();
+    scrollToTopOfTrainerTab();
 });
