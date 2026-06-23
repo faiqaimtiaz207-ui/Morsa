@@ -176,9 +176,9 @@
 
             <!-- TAB 3: TRAINER -->
             <div id="trainer-tab" class="tab-content hidden">
+                <div class="card-stack">
 
-                <div id="trainer-start" class="trainer-center">
-                        <div class="card trainer-welcome">
+                    <div class="card trainer-welcome">
                         <div class="trainer-icon">◎</div>
                         <h2>Morse Code Trainer</h2>
                         <p id="trainer-subtitle" class="muted">Can you beat your best score?</p>
@@ -187,51 +187,46 @@
                             <span class="score-value" id="best-score-display">0</span>
                             <span class="score-unit">WPM</span>
                         </div>
-                        <button id="start-trainer" class="btn btn-primary btn-lg btn-full" aria-label="Start trainer game">
-                            Start Game
-                        </button>
-                        <button id="play-again" class="btn btn-ghost btn-full" aria-label="Play another round" style="display:none; margin-top:8px;">Play Again</button>
-                    </div>
-                </div>
-
-                <div id="trainer-playing" class="hidden">
-                    <div class="card-stack">
-                        <!-- Score Display -->
-                        <div class="card stats-card">
-                            <div class="stat-item">
-                                <span class="stat-label">Score</span>
-                                <span class="stat-value" id="current-score">0</span>
-                            </div>
-                            <div class="stat-divider"></div>
-                            <div class="stat-item">
-                                <span class="stat-label">Time</span>
-                                <span class="stat-value" id="round-timer">3</span>
-                            </div>
-                            <div class="stat-divider"></div>
-                            <div class="stat-item">
-                                <span class="stat-label">Accuracy</span>
-                                <span class="stat-value" id="accuracy">100%</span>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <label for="trainer-answer" class="field-label">Type the letter you hear:</label>
-                            <input
-                                id="trainer-answer"
-                                type="text"
-                                maxlength="1"
-                                placeholder="?"
-                                class="trainer-input"
-                                aria-label="Answer input"
-                            />
-                            <p class="hint-text">Current letter being played</p>
-                            <p id="trainer-feedback" class="trainer-feedback" aria-live="polite"></p>
+                        <div class="trainer-btns">
+                            <button id="start-trainer" class="btn btn-primary btn-lg" aria-label="Start trainer game">Start</button>
+                            <button id="stop-trainer" class="btn btn-ghost btn-lg" aria-label="Stop trainer game" disabled>Stop</button>
+                            <button id="play-again" class="btn btn-ghost btn-lg" aria-label="Play again and keep score" disabled>Play Again</button>
                         </div>
                     </div>
+
+                    <div class="card stats-card">
+                        <div class="stat-item">
+                            <span class="stat-label">Score</span>
+                            <span class="stat-value" id="current-score">0</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-label">Time</span>
+                            <span class="stat-value" id="round-timer">3</span>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-item">
+                            <span class="stat-label">Accuracy</span>
+                            <span class="stat-value" id="accuracy">100%</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <label for="trainer-answer" class="field-label">Type the letter you hear:</label>
+                        <input
+                            id="trainer-answer"
+                            type="text"
+                            maxlength="1"
+                            placeholder="?"
+                            class="trainer-input"
+                            aria-label="Answer input"
+                            disabled
+                        />
+                        <p class="hint-text">Current letter being played</p>
+                        <p id="trainer-feedback" class="trainer-feedback" aria-live="polite"></p>
+                    </div>
+
                 </div>
-
-                <!-- gameover removed; keep Play Again button available in the start view -->
-
             </div>
 
             <!-- TAB 4: REFERENCE -->

@@ -487,8 +487,7 @@ stopAudioBtn.addEventListener('click', stopAudio);
 // ===== TRAINER TAB =====
 
 const startTrainerBtn = document.getElementById('start-trainer');
-const trainerStart = document.getElementById('trainer-start');
-const trainerPlaying = document.getElementById('trainer-playing');
+const stopTrainerBtn = document.getElementById('stop-trainer');
 const trainerAnswer = document.getElementById('trainer-answer');
 const currentScoreDisplay = document.getElementById('current-score');
 const roundTimerDisplay = document.getElementById('round-timer');
@@ -513,28 +512,64 @@ function getRandomLetter() {
     return LETTERS_FOR_TRAINER[Math.floor(Math.random() * LETTERS_FOR_TRAINER.length)];
 }
 
-startTrainerBtn.addEventListener('click', () => {
-    trainerState = {
-        score: 0,
-        correct: 0,
-        total: 0,
-        currentLetter: '',
-        timeLeft: 3,
-        timerInterval: null,
-        canAnswer: true,
-        gameActive: true
-    };
+function updateTrainerButtons() {
+    const playing = trainerState.gameActive;
+    startTrainerBtn.disabled = playing;
+    stopTrainerBtn.disabled = !playing;
+    playAgainBtn.disabled = playing || trainerState.score === 0;
+    trainerAnswer.disabled = !playing;
+}
 
-    trainerStart.classList.add('hidden');
-    trainerPlaying.classList.remove('hidden');
-    // ensure Play Again button hidden while playing
-    const playAgainBtnEl = document.getElementById('play-again');
-    if (playAgainBtnEl) playAgainBtnEl.style.display = 'none';
+function saveBestScore() {
+    try {
+        const wpm = Math.round((trainerState.score / 5) * 60);
+        const storedBest = parseInt(localStorage.getItem('bestScore') || '0');
+        if (wpm > storedBest) {
+            localStorage.setItem('bestScore', wpm);
+            bestScoreDisplay.textContent = String(wpm);
+            const trainerSubtitle = document.getElementById('trainer-subtitle');
+            if (trainerSubtitle) trainerSubtitle.textContent = `Can you beat your best score (${wpm} WPM)?`;
+        }
+    } catch (e) {}
+}
+
+function startGame(resetScore) {
+    clearInterval(trainerState.timerInterval);
+
+    if (resetScore) {
+        trainerState.score = 0;
+        trainerState.correct = 0;
+        trainerState.total = 0;
+    }
+
+    trainerState.currentLetter = '';
+    trainerState.timeLeft = 3;
+    trainerState.canAnswer = false;
+    trainerState.gameActive = true;
+
     trainerAnswer.value = '';
+    updateTrainerDisplay();
+    updateTrainerButtons();
     trainerAnswer.focus();
-
     nextRound();
-});
+}
+
+function stopGame() {
+    trainerState.gameActive = false;
+    trainerState.canAnswer = false;
+    clearInterval(trainerState.timerInterval);
+    saveBestScore();
+    updateTrainerButtons();
+}
+
+function playAgainGame() {
+    if (trainerState.score === 0) return;
+    startGame(false);
+}
+
+startTrainerBtn.addEventListener('click', () => startGame(true));
+stopTrainerBtn.addEventListener('click', stopGame);
+playAgainBtn.addEventListener('click', playAgainGame);
 
 function nextRound() {
     trainerState.currentLetter = getRandomLetter();
@@ -618,47 +653,16 @@ function endRound(isCorrect) {
         trainerState.score++;
     }
 
+    // If this score beats the stored best (by WPM estimate), update stored best immediately
+    saveBestScore();
+
     updateTrainerDisplay();
+    updateTrainerButtons();
 
     setTimeout(() => {
-        if (trainerState.score < 10) {
-            nextRound();
-        } else {
-            endGame();
-        }
+        if (!trainerState.gameActive) return;
+        nextRound();
     }, 1000);
-}
-
-function endGame() {
-    trainerState.gameActive = false;
-    clearInterval(trainerState.timerInterval);
-
-    const accuracy = trainerState.total > 0
-        ? Math.round((trainerState.correct / trainerState.total) * 100)
-        : 0;
-    const wpm = Math.round((trainerState.score / 5) * 60);
-
-    const prevBest = parseInt(localStorage.getItem('bestScore') || '0');
-    if (wpm > prevBest) {
-        localStorage.setItem('bestScore', wpm);
-    }
-
-    // Reflect best score in the UI
-    const newBest = localStorage.getItem('bestScore') || prevBest.toString();
-    bestScoreDisplay.textContent = newBest;
-
-    const trainerSubtitle = document.getElementById('trainer-subtitle');
-    if (trainerSubtitle) {
-        trainerSubtitle.textContent = `Can you beat your best score (${newBest} WPM)?`;
-    }
-
-    // Return to the start view and show Play Again button
-    trainerPlaying.classList.add('hidden');
-    trainerStart.classList.remove('hidden');
-    const playAgainBtnEl = document.getElementById('play-again');
-    if (playAgainBtnEl) {
-        playAgainBtnEl.style.display = 'block';
-    }
 }
 
 function updateTrainerDisplay() {
@@ -670,10 +674,6 @@ function updateTrainerDisplay() {
     accuracyDisplay.textContent = accuracy + '%';
 }
 
-playAgainBtn.addEventListener('click', () => {
-    startTrainerBtn.click();
-});
-
 window.addEventListener('DOMContentLoaded', () => {
     const bestScore = localStorage.getItem('bestScore') || '0';
     bestScoreDisplay.textContent = bestScore;
@@ -681,6 +681,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (trainerSubtitle) {
         trainerSubtitle.textContent = `Can you beat your best score (${bestScore} WPM)?`;
     }
+    updateTrainerButtons();
 });
 
 // ===== REFERENCE TAB =====
